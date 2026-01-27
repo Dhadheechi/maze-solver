@@ -56,6 +56,7 @@ class Cell:
         self.__x2 = -1
         self.__y2 = -1 # these values define the boundaries of the cell
         self.visited = False
+        self.parent = (-1, -1)
 
     def draw(self, x1, y1, x2, y2, fill_color="black"):
         self.__x1 = x1
@@ -84,7 +85,7 @@ class Cell:
                 self.window.draw(Line(Point(self.__x1, self.__y2), Point(self.__x2, self.__y2)), bg)
 
 
-    def draw_move(self, to_cell, undo=False):
+    def draw_move(self, to_cell, undo=False, retrace=False):
         x1 = (self.__x1 + self.__x2) / 2
         y1 = (self.__y1 + self.__y2) / 2
         x2 = (to_cell.__x1 + to_cell.__x2) / 2
@@ -96,6 +97,8 @@ class Cell:
         fill_color = "red"
         if undo:
             fill_color = "gray"
+        if retrace:
+            fill_color = "green"
         if self.window:
             self.window.draw(Line(p1, p2), fill_color)            
 
@@ -251,16 +254,85 @@ class Maze: # holds all the cells in a list of lists
             
         return False
 
+    def solve_bfs(self):
+        queue = []
+        start_cell = self.__cells[0][0]
+        queue.append((0,0))
+        visited = []
+        # parent_child = []
+        
+        while len(queue) != 0:
+            self.__animate()
+            i, j = queue.pop(0)
+            current_cell = self.__cells[i][j]
+            current_cell.visited = True
+            if i == self.cols - 1 and j == self.rows - 1:
+                # for (parent, child) in parent_child:
+                #     parent.draw_move(child, undo=True)
+                #
+                x, y = i, j
+                while (x,y) != (0, 0):
+                    self.__animate()
+                    current_cell = self.__cells[x][y]
+                    x, y = current_cell.parent
+                    parent_cell = self.__cells[x][y]
+                    current_cell.draw_move(parent_cell, retrace=True)
 
+                return True
+
+            directions = ["left", "right", "up", "down"]
+            for direction in directions:
+                if direction == "left":
+                    if not current_cell.has_left_wall and i != 0:
+                        left_cell = self.__cells[i-1][j]
+                        if not left_cell.visited: 
+                            current_cell.draw_move(left_cell)
+                            queue.append((i-1, j))
+                            left_cell.parent = (i, j)
+                            # parent_child.append((current_cell, left_cell))
+                            # current_cell.draw_move(left_cell, undo=True)
+                if direction == "right":
+                    if not current_cell.has_right_wall and i != self.cols - 1:
+                        right_cell = self.__cells[i+1][j]
+                        if not right_cell.visited:
+                            current_cell.draw_move(right_cell)
+                            queue.append((i+1, j))
+                            right_cell.parent = (i, j)
+                            # parent_child.append((current_cell, right_cell))
+                            # current_cell.draw_move(right_cell, undo=True)
+                if direction == "up" and j != 0:
+                    if not current_cell.has_top_wall:
+                        top_cell = self.__cells[i][j-1]
+                        if not top_cell.visited: 
+                            current_cell.draw_move(top_cell)
+                            queue.append((i, j-1))
+                            top_cell.parent = (i, j)
+                            # parent_child.append((current_cell, top_cell))
+                            # current_cell.draw_move(top_cell, undo=True)
+                if direction == "down" and j != self.rows - 1:
+                    if not current_cell.has_bottom_wall:
+                        down_cell = self.__cells[i][j+1]
+                        if not down_cell.visited:
+                            current_cell.draw_move(down_cell)
+                            queue.append((i, j+1))
+                            down_cell.parent = (i, j)
+                            
+                            # parent_child.append((current_cell, left_cell))
+                            # current_cell.draw_move(down_cell, undo=True)
+                
+            # return False
+             
 
 
 def main():
     win = Window(800, 600)
+    time.sleep(5)
     m = Maze(100, 100, 20, 20, 20, 20, win)
     m._Maze__break_entrance_and_exit()
     m._Maze__break_walls_r(10, 10)
     m._Maze__reset_cells_visited()
-    m.solve()
+    # m.solve()
+    m.solve_bfs()
     # m = Maze(100, 100, 3, 3, 20, 20, win)
     # m._Maze__break_entrance_and_exit()
     # m._Maze__break_walls_r(1, 1)
